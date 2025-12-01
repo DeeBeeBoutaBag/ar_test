@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <title>StoriBloom AR Slides (Marker Test)</title>
 
-    <!-- A-Frame + AR.js (marker-based; works on iOS Safari + Android Chrome) -->
+    <!-- A-Frame + AR.js (marker-based; iOS + Android) -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
     <style>
       html,
@@ -62,6 +62,63 @@
         color: #ffefb6;
         margin-top: 2px;
       }
+
+      /* Start screen */
+      .start-screen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: radial-gradient(circle at 20% 0, #222 0, #000 55%);
+        color: #fff;
+        z-index: 20;
+        text-align: center;
+        padding: 0 24px;
+      }
+
+      .start-title {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .start-sub {
+        font-size: 13px;
+        opacity: 0.8;
+      }
+
+      .start-btn {
+        margin-top: 10px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(240, 200, 107, 0.7);
+        background: linear-gradient(135deg, #f0c86b, #ffefb6);
+        color: #111;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .start-note {
+        font-size: 11px;
+        opacity: 0.7;
+        max-width: 320px;
+      }
+
+      .error-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 6px 10px;
+        font-size: 11px;
+        color: #fff;
+        background: rgba(180, 30, 30, 0.9);
+        text-align: center;
+        z-index: 30;
+      }
     </style>
   </head>
 
@@ -70,14 +127,37 @@
     <div class="overlay">
       <div class="overlay-title">StoriBloom AR — Test Slides</div>
       <div class="overlay-text">
-        Point your camera at a <b>Hiro marker</b> to see three floating slides.
-        You can print one or pull it up on another screen.
+        After you tap <b>Start AR</b>, your browser should ask for camera access.
+        Then point at a <b>Hiro marker</b> to see the floating slides.
       </div>
-      <div class="badge">Marker-based · Works on iOS + Android</div>
+      <div class="badge">Marker-based · iOS + Android</div>
+    </div>
+
+    <!-- Start screen, so iOS knows we had a user gesture -->
+    <div id="start-screen" class="start-screen">
+      <div class="start-title">Start AR</div>
+      <div class="start-sub">
+        Tap the button below. When your browser asks, choose
+        <b>Allow</b> for camera access.
+      </div>
+      <button id="start-btn" class="start-btn">Start AR</button>
+      <div class="start-note">
+        If you don’t see a camera prompt:
+        open this page in <b>Safari or Chrome directly</b> (not inside another
+        app) and make sure camera permissions are allowed in Settings.
+      </div>
+    </div>
+
+    <!-- Error banner (shown if AR.js reports a camera error) -->
+    <div id="error-banner" class="error-banner" style="display:none;">
+      Camera failed to start. On iPhone: open in Safari, then go to
+      Settings → Safari → Camera → Allow, and reload.
     </div>
 
     <!-- AR.js scene -->
     <a-scene
+      id="ar-scene"
+      style="display:none;"
       embedded
       vr-mode-ui="enabled: false"
       renderer="logarithmicDepthBuffer: true; antialias: true;"
@@ -100,7 +180,7 @@
           ></a-plane>
 
           <a-text
-            value="1_The-Innovation-Soul-Line.png"
+            value="Slide 1 — Welcome"
             align="center"
             color="#FFEFB6"
             width="1.6"
@@ -108,7 +188,7 @@
           ></a-text>
 
           <a-text
-            value="2_Todays-Set-List.png"
+            value="1_The-Innovation-Soul-Line.png"
             align="center"
             color="#FFFFFF"
             width="1.8"
@@ -156,7 +236,7 @@
           ></a-plane>
 
           <a-text
-            value="Slide 3 — Asema"
+            value="3_Check-In-Name-Your-Vibe.png"
             align="center"
             color="#FFEFB6"
             width="1.6"
@@ -164,7 +244,7 @@
           ></a-text>
 
           <a-text
-            value="3_Check-In-Name-Your-Vibe.png"
+            value="Ask 'Asema, ...' to keep the story sharp."
             align="center"
             color="#FFFFFF"
             width="1.8"
@@ -176,5 +256,37 @@
       <!-- Required for AR.js -->
       <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+      const startScreen = document.getElementById('start-screen');
+      const startBtn = document.getElementById('start-btn');
+      const sceneEl = document.getElementById('ar-scene');
+      const errorBanner = document.getElementById('error-banner');
+
+      // Show scene only after a user gesture — helps on iOS
+      startBtn.addEventListener('click', () => {
+        startScreen.style.display = 'none';
+        sceneEl.style.display = 'block';
+
+        // AR.js will now try to init the camera; we listen for success/error below
+      });
+
+      // Listen for AR.js camera events
+      window.addEventListener('load', () => {
+        const scene = document.querySelector('a-scene');
+
+        if (!scene) return;
+
+        scene.addEventListener('camera-init', () => {
+          // Camera started successfully — hide error if it was shown
+          if (errorBanner) errorBanner.style.display = 'none';
+        });
+
+        scene.addEventListener('camera-error', (ev) => {
+          console.error('AR.js camera error:', ev);
+          if (errorBanner) errorBanner.style.display = 'block';
+        });
+      });
+    </script>
   </body>
 </html>
